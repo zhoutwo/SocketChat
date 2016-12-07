@@ -35,3 +35,6 @@
 # MacOS files
 *.DS_Store
 ._*
+
+# Project Files
+compiled/
