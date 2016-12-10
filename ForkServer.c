@@ -11,8 +11,12 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-void dostuff(int);
-char* getAddress(unsigned int cli_addr); /* function prototype */
+/* function prototype */
+char* getAddress(unsigned int cli_addr);
+char* getClientUsername(int sock, char* serverUsername);
+int isExit(char* input);
+void readSocket (int sock, char* addr, char* username, int* isRunning);
+void writeSocket (int sock, int* isRunning);
 
 void error(char *msg)
 {
@@ -22,10 +26,22 @@ void error(char *msg)
 
 int main(int argc, char *argv[])
 {
+  int sockfd, portno, clilen, pid, parentPid, running;
+  struct sockaddr_in serv_addr, cli_addr;
+  char* serverUsername[32];
+  char* clientUsername;
+
+  running = 1;
+  int* isRunning = &running;
+
   if (argc < 2) {
     fprintf(stderr,"ERROR, no port provided\n");
     exit(1);
   }
+
+  printf("%s", "Provide user name: ");
+  fgets(serverUsername, 32, stdin);
+
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd < 0) 
     error("ERROR opening socket");
@@ -38,23 +54,31 @@ int main(int argc, char *argv[])
     sizeof(serv_addr)) < 0) 
     error("ERROR on binding");
   listen(sockfd,5);
+
+  printf("%s", "Waiting for connection ...\n");
+
   clilen = sizeof(cli_addr);
-  while (1) {
-    newsockfd = accept(sockfd, 
+
+  parentPid = getpid();
+
+  while (*isRunning) {
+    int newsockfd = accept(sockfd, 
          (struct sockaddr *) &cli_addr, &clilen);
-    printf("%s", getAddress(cli_addr.sin_addr.s_addr));
     if (newsockfd < 0) 
-       error("ERROR on accept");
+      error("ERROR on accept");
+    char* clientAddress = getAddress(cli_addr.sin_addr.s_addr);
+
     pid = fork();
     if (pid < 0)
        error("ERROR on fork");
-    if (pid == 0)  {
-       close(sockfd);
-       dostuff(newsockfd);
-       exit(0);
+    if ((pid == 0) & (pid != parentPid))  {
+       // close(sockfd);
+      clientUsername = getClientUsername(newsockfd, serverUsername);
+      readSocket(newsockfd, clientAddress, clientUsername, isRunning);
+      exit(0);
     }
-    else close(newsockfd);
   } /* end of while */
+  exit(0);
   return 0; /* we never get here */
 }
 
@@ -71,20 +95,75 @@ char* getAddress(unsigned int addr) {
   return result;
 }
 
+char* getClientUsername(int sock, char* serverUsername) {
+  int n;
+  char buffer[256];
+  memset(buffer, 0, 256);
+  n = read(sock, buffer, 255);
+  if (n < 0) error("ERROR reading from socket");
+  n = write(sock, serverUsername, sizeof serverUsername);
+  if (n < 0) error("ERROR writing to socket");
+  return buffer;
+}
+
+int isExit(char* input) {
+  return strcmp(input, (char *) 'exit');
+}
+
 /******** DOSTUFF() *********************
  There is a separate instance of this function 
  for each connection.  It handles all communication
  once a connnection has been established.
  *****************************************/
-void dostuff (int sock)
+void readSocket (int sock, char* addr, char* username, int* isRunning)
 {
-   int n;
-   char buffer[256];
-      
-   memset(buffer, 0, 256);
-   n = read(sock,buffer,255);
-   if (n < 0) error("ERROR reading from socket");
-   printf("Here is the message: %s\n",buffer);
-   n = write(sock,"I got your message",18);
-   if (n < 0) error("ERROR writing to socket");
+  int n, pid, currentPid;
+  char buffer[256];
+  char input[256];
+
+  currentPid = getpid();
+
+  printf("Connection established with %s (%s)\n", addr, username);
+    
+  memset(buffer, 0, 256);
+  memset(input, 0, 256);
+
+  pid = fork();
+  if (pid < 0)
+     error("ERROR on fork");
+  if ((pid == 0) & (pid != currentPid))  {
+    writeSocket(sock, isRunning);
+  } else {
+    while (*isRunning) {
+      n = read(sock,buffer,255);
+      if (n < 0) error("ERROR reading from socket");
+      if (isExit(buffer)) {
+        write(sock,"Closing connection requested by client",38);
+        *isRunning = 0;
+        break;
+      }
+      printf("<%s>%s\n",username,buffer);
+    }
+    close(sock);
+    printf("%s", "Closing connection ...");
+  }
+  exit(0);
+}
+
+void writeSocket (int sock, int* isRunning) {
+  int n;
+
+  char buffer[256];
+  memset(buffer, 0, 256);
+  while (*isRunning) {
+    fgets(buffer, 256, stdin);
+    if (isExit(buffer)) {
+        write(sock,"Closing connection requested by server",38);
+        *isRunning = 0;
+        break;
+    }
+    n = write(sock, buffer, sizeof buffer);
+    if (n < 0) error("ERROR writing to socket");
+    printf("<you>%s", buffer);
+  }
 }
