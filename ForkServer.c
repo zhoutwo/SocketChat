@@ -20,8 +20,8 @@ void writeSocket (int sock, int* isRunning);
 
 void error(char *msg)
 {
-    perror(msg);
-    exit(1);
+  perror(msg);
+  exit(1);
 }
 
 int main(int argc, char *argv[])
