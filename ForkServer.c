@@ -32,16 +32,11 @@ void error(char *msg)
 }
 
 void term(int signum) {
-  if (currentSocket != 0) {
-    printf("currentSocket: %d\n", currentSocket);
-  }
   close(currentSocket); // Don't really mind if this is closed more than once
   if (writePidSet) {
-    printf("Killing write process %d\n", 1);
     kill(writePid, SIGTERM);
   }
   if (mainPidSet) {
-    printf("Killing main process %d\n", 1);
     kill(mainPid, SIGTERM);
   }
   exit(0);
@@ -87,15 +82,11 @@ int main(int argc, char *argv[])
   currentPid = getpid();
 
   while (1) {
-    printf("%s", "Getting connection\n");
     int newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
-    printf("%s", "Got connection\n");
     if (newsockfd < 0)
       error("ERROR on accept");
     char* clientAddress = getAddress(cli_addr.sin_addr.s_addr);
-    printf("%s", "Forking process in main\n");
     pid = fork();
-    printf("%s", "Process forked in main\n");
     if (pid < 0)
        error("ERROR on fork");
     if ((pid == 0) & (pid != currentPid)) {
@@ -133,9 +124,7 @@ char* getClientUsername(int sock, char* serverUsername) {
 
 int isExit(char* input) {
   int r;
-  printf("%s", "In isExit\n");
   r = strcmp(input, (char *) "exit\n");
-  printf("strcmp check result: %d\n", r);
   return (r == 0);
 }
 
@@ -153,26 +142,20 @@ void readSocket (int sock, char* addr, char* username, int mainPid)
   currentSocket = sock;
   mainPid = mainPid;
   mainPidSet = 1;
-  printf("%s", "In readSocket\n");
   printf("Connection established with %s (%s)\n", addr, username);
     
   memset(buffer, 0, 256);
   memset(input, 0, 256);
-  printf("%s", "Forking process in readSocket\n");
   pid = fork();
   writePid = pid;
   writePidSet = 1;
-  printf("%s", "Process forked in readSocket\n");
   if (pid < 0)
      error("ERROR on fork");
   if ((pid == 0) & (pid != currentPid)) {
-    printf("%s", "Calling writeSocket\n");
     writeSocket(sock, currentPid);
   } else {
     while (1) {
-      printf("%s", "Waiting for data sent from client\n");
       n = read(sock, buffer, 255);
-      printf("%s", "Client input read\n");
       if (n < 0) error("ERROR reading from socket");
       if (isExit(buffer)) {
         write(sock, "Closing connection requested by client", 38);
@@ -187,7 +170,6 @@ void readSocket (int sock, char* addr, char* username, int mainPid)
 
 void writeSocket (int sock, int readPid) {
   int n;
-  printf("%s", "In writeScoket\n");
   char buffer[256];
   memset(buffer, 0, 256);
 
@@ -195,21 +177,16 @@ void writeSocket (int sock, int readPid) {
   writePidSet = 0;
 
   while (1) {
-    printf("%s", "Waiting for server input\n");
     fgets(buffer, 256, stdin);
-    printf("%s", "Server input acquired\n");
     if (isExit(buffer)) {
       write(sock, "exit\n", 5);
       write(sock, "Closing connection requested by server", 38);
       break;
     }
-    printf("%s", "Sending server input\n");
     n = write(sock, buffer, sizeof buffer);
-    printf("%s", "Sever input sent\n");
     if (n < 0) error("ERROR writing to socket");
     printf("<you>%s", buffer);
   }
-  printf("%s", "Socket closed in writeScoket\n");
   printf("%s", "Closing connection ...");
-  kill(mainPid, SIGTERM);
+  kill(readPid, SIGTERM);
 }
