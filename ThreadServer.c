@@ -36,6 +36,7 @@
         else
             printf("Closing connection\n");
         close(sockfd);
+		exit(0);
     }
 
     int main(int argc, char *argv[])
