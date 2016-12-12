@@ -128,13 +128,19 @@ int main(int argc, char *argv[])
         error("ERROR writing to socket");
 		char EXIT[BUF_SIZE];
 		bzero(EXIT, BUF_SIZE);
-		strcpy(EXIT, "exit\n");
+		strcpy(EXIT, "exit");
 		
 //		printf("EXIT: %s : %s", EXIT, buffer);
 //		printf("%d\n", strcoll(EXIT, buffer));
-		if(strcoll(EXIT, buffer) == 0) break;
+		int j;
+	for(j = 0; j < BUF_SIZE; j++)
+	{
+		if(buffer[j] == '\n') break;
+	}
+	bzero(&buffer[j], BUF_SIZE - j);
+	if(strcoll(EXIT, buffer) == 0) break;
 		bzero(buffer,BUF_SIZE);
-		printf("bzero: %s", buffer);
+//		printf("bzero: %s", buffer);
 	}
 	printf("Closing connection\n");
 //    if (newsockfd < 0) 
