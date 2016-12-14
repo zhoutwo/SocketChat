@@ -116,6 +116,13 @@ char* getClientUsername(int sock, char* serverUsername) {
   char buffer[256];
   memset(buffer, 0, 256);
   n = read(sock, buffer, 255);
+
+  for (int i = 0; i < 256; i++) {
+    if (buffer[i] == '\n' | buffer[i] == '\r') {
+      buffer[i] = 0;
+    }
+  }
+
   if (n < 0) error("ERROR reading from socket");
   n = write(sock, serverUsername, sizeof serverUsername);
   if (n < 0) error("ERROR writing to socket");
@@ -124,7 +131,7 @@ char* getClientUsername(int sock, char* serverUsername) {
 
 int isExit(char* input) {
   int r;
-  r = strcmp(input, (char *) "exit\n");
+  r = strcmp(input, (char *) "exit") | strcmp(input, (char *) "exit\n");
   return (r == 0);
 }
 
@@ -135,7 +142,6 @@ void killProcess(int sock, int mainPid, int readPid, int writePid) {
 void readSocket (int sock, char* addr, char* username, int mainPid)
 {
   int n, pid;
-  char buffer[256];
   char input[256];
 
   currentPid = getpid();
@@ -143,8 +149,7 @@ void readSocket (int sock, char* addr, char* username, int mainPid)
   mainPid = mainPid;
   mainPidSet = 1;
   printf("Connection established with %s (%s)\n", addr, username);
-    
-  memset(buffer, 0, 256);
+
   memset(input, 0, 256);
   pid = fork();
   writePid = pid;
@@ -155,13 +160,14 @@ void readSocket (int sock, char* addr, char* username, int mainPid)
     writeSocket(sock, currentPid);
   } else {
     while (1) {
-      n = read(sock, buffer, 255);
+      n = read(sock, input, 255);
       if (n < 0) error("ERROR reading from socket");
-      if (isExit(buffer)) {
+      if (isExit(input)) {
         write(sock, "Closing connection requested by client", 38);
         break;
       }
-      printf("<%s>%s\n", username, buffer);
+      printf("<%s>%s\n", username, input);
+      memset(input, 0, 256);
     }
     printf("%s", "Closing connection ...");
   }
