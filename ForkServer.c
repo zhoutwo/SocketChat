@@ -115,7 +115,7 @@ void getClientUsername(int sock, char* serverUsername, char* clientUsername) {
   memset(clientUsername, 0, 32);
   n = read(sock, clientUsername, 32);
 
-  for (int i = 0; i < 256; i++) {
+  for (int i = 0; i < 32; i++) {
     if (clientUsername[i] == '\n' | clientUsername[i] == '\r') {
       clientUsername[i] = 0;
     }
