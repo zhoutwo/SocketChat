@@ -160,7 +160,6 @@ void readSocket (int sock, char* addr, char* username, int mainPid)
       n = read(sock, input, 255);
       if (n < 0) error("ERROR reading from socket");
       if (isExit(input)) {
-        write(sock, "Closing connection requested by the client", 42);
         break;
       }
       printf("<%s>%s", username, input);
@@ -183,7 +182,6 @@ void writeSocket (int sock, int readPid) {
     fgets(buffer, 256, stdin);
     if (isExit(buffer)) {
       write(sock, "exit\n", 5);
-      write(sock, "Closing connection requested by the server", 42);
       break;
     }
     n = write(sock, buffer, sizeof buffer);
