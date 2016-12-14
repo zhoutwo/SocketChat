@@ -175,6 +175,7 @@ void writeSocket (int sock, int readPid) {
   char buffer[256];
   memset(buffer, 0, 256);
 
+  currentPid = getpid();
   mainPidSet = 0;
   writePidSet = 0;
 
