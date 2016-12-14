@@ -32,13 +32,18 @@ void * receiveMessage(void * socket) {
 			k = 1;
 			printf("(%s)\n", server_name);
 		}
-		else	
-			printf("%s: %s", server_name, buffer);
+		else{
+//			printf("this line\n");
+			printf("<%s>%s", server_name, buffer);
+		}
+		bzero(buffer, BUF_SIZE);	
     }
     if (ret < 0) 
         printf("Error receiving data!\n");
-    else
+    else{
+		
         printf("Closing connection\n");
+	}
     close(sockfd);
 	exit(0);
 }
@@ -110,8 +115,7 @@ int main(int argc, char *argv[])
 	strcat(temp, ")");*/
 //	printf("Connection established with %s (%s)\n",ip, name);
 	write(sockfd, name, strlen(name));
-	
-	
+//	write(sockfd, "ok\n", strlen("ok\n"));
 //    printf("Please enter the message: ");
 	pthread_t rThread;
 	if (ret = pthread_create(&rThread, NULL, receiveMessage, (void *) sockfd)) {
@@ -121,6 +125,7 @@ int main(int argc, char *argv[])
     bzero(buffer,BUF_SIZE);
 	while(1)
 	{
+//		write(sockfd,"hi",strlen("hi"));
 		bzero(buffer,BUF_SIZE);
 		fgets(buffer,BUF_SIZE,stdin);
 		n = write(sockfd,buffer,strlen(buffer));
@@ -142,6 +147,7 @@ int main(int argc, char *argv[])
 		bzero(buffer,BUF_SIZE);
 //		printf("bzero: %s", buffer);
 	}
+//	printf("another\n");
 	printf("Closing connection\n");
 //    if (newsockfd < 0) 
 //        error("ERROR on accept");
