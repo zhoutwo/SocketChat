@@ -30,6 +30,11 @@ void * receiveMessage(void * socket) {
 		if(k == 0){
 			strcpy(server_name, buffer);
 			k = 1;
+			int i;
+			for(i = 0; i < BUF_SIZE; i++){
+				if (server_name[i] == '\n') break;
+			}
+			bzero(&server_name[i], BUF_SIZE - i);
 			printf("(%s)\n", server_name);
 		}
 		else{
