@@ -19,8 +19,8 @@ int writePidSet = 0;
 int currentSocket;
 
 /* function prototype */
-char* getAddress(unsigned int cli_addr);
-char* getClientUsername(int sock, char* serverUsername);
+void getAddress(unsigned int addr, char* result);
+void getClientUsername(int sock, char* serverUsername, char* clientUsername);
 int isExit(char* input);
 void readSocket (int sock, char* addr, char* username, int mainPid);
 void writeSocket (int sock, int readPid);
@@ -47,7 +47,8 @@ int main(int argc, char *argv[])
   int sockfd, portno, clilen, pid, running;
   struct sockaddr_in serv_addr, cli_addr;
   char* serverUsername[32];
-  char* clientUsername;
+  char clientUsername[32];
+  char clientAddress[15];
   struct sigaction action;
   memset(&action, 0, sizeof(struct sigaction));
   action.sa_handler = term;
@@ -85,12 +86,12 @@ int main(int argc, char *argv[])
     int newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
     if (newsockfd < 0)
       error("ERROR on accept");
-    char* clientAddress = getAddress(cli_addr.sin_addr.s_addr);
+    getAddress(cli_addr.sin_addr.s_addr, clientAddress);
     pid = fork();
     if (pid < 0)
        error("ERROR on fork");
     if ((pid == 0) & (pid != currentPid)) {
-      clientUsername = getClientUsername(newsockfd, serverUsername);
+      getClientUsername(newsockfd, serverUsername, clientUsername);
       readSocket(newsockfd, clientAddress, clientUsername, currentPid);
     }
   } /* end of while */
@@ -101,37 +102,33 @@ int main(int argc, char *argv[])
 /*
   This function returns the pointer to the string representation of an IP address encoded in an unsigned integer
 */
-char* getAddress(unsigned int addr) {
-  char* result[15];
+void getAddress(unsigned int addr, char* result) {
   unsigned int a0 = addr & 0xFF;
   unsigned int a1 = (addr >> 8) & 0xFF;
   unsigned int a2 = (addr >> 16) & 0xFF;
   unsigned int a3 = (addr >> 24) & 0xFF;
   snprintf(result, 15, "%d.%d.%d.%d", a0, a1, a2, a3);
-  return result;
 }
 
-char* getClientUsername(int sock, char* serverUsername) {
+void getClientUsername(int sock, char* serverUsername, char* clientUsername) {
   int n;
-  char buffer[256];
-  memset(buffer, 0, 256);
-  n = read(sock, buffer, 255);
+  memset(clientUsername, 0, 32);
+  n = read(sock, clientUsername, 32);
 
   for (int i = 0; i < 256; i++) {
-    if (buffer[i] == '\n' | buffer[i] == '\r') {
-      buffer[i] = 0;
+    if (clientUsername[i] == '\n' | clientUsername[i] == '\r') {
+      clientUsername[i] = 0;
     }
   }
 
   if (n < 0) error("ERROR reading from socket");
   n = write(sock, serverUsername, sizeof serverUsername);
   if (n < 0) error("ERROR writing to socket");
-  return buffer;
 }
 
 int isExit(char* input) {
   int r;
-  r = strcmp(input, (char *) "exit") | strcmp(input, (char *) "exit\n");
+  r = strcmp(input, (char *) "exit") & strcmp(input, (char *) "exit\n");
   return (r == 0);
 }
 
@@ -163,10 +160,10 @@ void readSocket (int sock, char* addr, char* username, int mainPid)
       n = read(sock, input, 255);
       if (n < 0) error("ERROR reading from socket");
       if (isExit(input)) {
-        write(sock, "Closing connection requested by client", 38);
+        write(sock, "Closing connection requested by the client", 42);
         break;
       }
-      printf("<%s>%s\n", username, input);
+      printf("<%s>%s", username, input);
       memset(input, 0, 256);
     }
     printf("%s", "Closing connection ...");
@@ -186,7 +183,7 @@ void writeSocket (int sock, int readPid) {
     fgets(buffer, 256, stdin);
     if (isExit(buffer)) {
       write(sock, "exit\n", 5);
-      write(sock, "Closing connection requested by server", 38);
+      write(sock, "Closing connection requested by the server", 42);
       break;
     }
     n = write(sock, buffer, sizeof buffer);
