@@ -90,12 +90,12 @@ int main(int argc, char *argv[])
 	printf("本机ip: %s\n", ip);
 	*/
 	//////////////////////////////////////////
-    portno = atoi(argv[2]);
+	portno = atoi(argv[2]);
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) 
         error("ERROR opening socket");
-    server = gethostbyname(argv[1]);
-    if (server == NULL) {
+	server = gethostbyname(argv[1]);
+	if (server == NULL) {
         fprintf(stderr,"ERROR, no such host\n");
         exit(0);
     }
