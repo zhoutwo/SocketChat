@@ -29,7 +29,7 @@ void * receiveMessage(void * socket) {
       k = 1;
       int i;
       for(i = 0; i < BUF_SIZE; i++){
-      if (server_name[i] == '\n') break;
+        if (server_name[i] == '\n') break;
       }
       bzero(&server_name[i], BUF_SIZE - i);
       printf("(%s)\n", server_name);
@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
 
   printf("Provide user name: ");
   char name[BUF_SIZE];
-  scanf("%s", name);
+  fgets(name, BUF_SIZE, stdin);
 
   portno = atoi(argv[2]);
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -95,14 +95,15 @@ int main(int argc, char *argv[])
   while(1)
   {
     bzero(buffer,BUF_SIZE);
+    fflush(stdin);
     fgets(buffer,BUF_SIZE,stdin);
+    printf("<you> %s", buffer);
     n = write(sockfd,buffer,strlen(buffer));
     if (n < 0) 
-        error("ERROR writing to socket");
+      error("ERROR writing to socket");
     char EXIT[BUF_SIZE];
     bzero(EXIT, BUF_SIZE);
     strcpy(EXIT, "exit");
-
     int j;
     for(j = 0; j < BUF_SIZE; j++)
     {
